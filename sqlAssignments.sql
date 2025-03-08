@@ -232,13 +232,13 @@ FROM SALESPEOPLE
 WHERE CITY = 'Barcelona' OR CITY = 'London';
 
 Output:
-+--------+-----------+
-| sname  | city      |
-+--------+-----------+
-| Peel   | London    |
-| Motika | London    |
-| Rafkin | Barcelona |
-+--------+-----------+
++------+--------+-----------+------+
+| SNUM | SNAME  | CITY      | COMM |
++------+--------+-----------+------+
+| 1001 | Peel   | London    | 0.12 |
+| 1004 | Motika | London    | 0.11 |
+| 1007 | Rafkin | Barcelona | 0.15 |
++------+--------+-----------+------+
 
 --12.All salespeople with commission between 0.10 and 0.12. (Boundary values should be excluded)
 Query:-
@@ -397,7 +397,7 @@ odate            amt          snum        cnum
 Query:
 Select count(*)
 from orders
-where odate = ‘03-OCT-94’;
+where odate = '1994-10-03';
 
 Output:
 OrderCount 
@@ -435,7 +435,7 @@ cnum
 Query:
 Select min(cname)
 from cust
-where cname like ‘G%’;
+where cname like 'G%';
 
 Output:                                             
 --------------------------------------------------
@@ -443,10 +443,11 @@ Giovanne
 
 --26. Get the output like “ For dd/mm/yy there are ___ orders.
 Query:
-Select 'For ' || to_char(odate,'dd/mm/yy') || ' there are '|| 
-count(*) || ' Orders'
-from orders
-group by odate;
+SELECT 
+    'For ' + FORMAT(ODATE, 'dd/MM/yy') + ' there are ' + 
+    CAST(COUNT(*) AS VARCHAR) + ' Orders' 
+FROM ORDERS 
+GROUP BY ODATE;
 
 output:
 For 03/10/94 there are 4 Orders                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
@@ -480,16 +481,22 @@ onum        snum        amt
 
 --28. Find highest rating in each city. Put the output in this form. For the city (city), the highest rating is : (rating).
 Query:
-Select 'For the city (' || city || '), the highest rating is : (' || 
-max(rating) || ')'
-from cust
-group by city;
+SELECT 
+    CONCAT('For the city (', city, '), the highest rating is : (', 
+           CAST(MAX(rating) AS CHAR), ')') as data
+FROM cust 
+GROUP BY city;
 
-output:
-For the city (Berlin), the highest rating is : (100)                                                                       
-For the city (London), the highest rating is : (300)                                                                       
-For the city (Rome), the highest rating is : (200)                                                                         
-For the city (San Jose), the highest rating is : (300)
+Output:
+
++--------------------------------------------------------+
+| data                                                   |
++--------------------------------------------------------+
+| For the city (London), the highest rating is : (300)   |
+| For the city (Rome), the highest rating is : (200)     |
+| For the city (San Jose), the highest rating is : (300) |
+| For the city (Berlin), the highest rating is : (100)   |
++--------------------------------------------------------+
 
 
 
@@ -517,17 +524,15 @@ from salespeople, cust
 where salespeople.city = cust.city;
 
 Output:
-sname                                              cname                                             
--------------------------------------------------- --------------------------------------------------
-Peel                                               Hoffman                                           
-Peel                                               Clemens                                           
-Serres                                             Liu                                               
-Motika                                             Hoffman                                           
-Motika   
-
---
-
-
++--------+---------+
+| sname  | cname   |
++--------+---------+
+| Motika | Hoffman |
+| Peel   | Hoffman |
+| Serres | Liu     |
+| Motika | Clemens |
+| Peel   | Clemens |
++--------+---------+
 
 --31. Name of all customers matched with the salespeople serving them.
 Query:
@@ -1033,20 +1038,10 @@ Output:
 
 --39. Display all customers located in cities where salesman serres has customer.
 Query:
-Select cname
-from cust
-where city = ( select city 
-	      		     from cust, salespeople
-           where cust.snum = salespeople.snum and                  sname = 'Serres');
-
 Select cname 
 from cust
-where city in ( select city
-            		      from cust, orders
-                                    where cust.cnum = orders.cnum and
-                                    orders.snum in ( select snum 
-   from salespeople
-                                                              where sname = 'Serres'));
+where city in ( select city from cust, orders where cust.cnum = orders.cnum and
+                orders.snum in ( select snum from salespeople where sname = 'Serres'));
 
 
 Output:
@@ -1059,22 +1054,21 @@ Output:
 
 --40. Find all pairs of customers served by single salesperson.
 Query:
+Query:
 Select cname from cust
  where snum in (select snum from cust
                 group by snum
                 having count(snum) > 1);
 
-Select distinct a.cname
-from cust a ,cust b
-where a.snum = b.snum and a.rowid != b.rowid;
 
 Output:
 +-------+
 | cname |
 +-------+
 | Liu   |
-| Grass |
+| Grass |
 +-------+
+
 --41. Produce all pairs of salespeople which are living in the same city. Exclude combinations of salespeople with themselves as well as duplicates with the order reversed.
 Query:
 Select a.sname, b.sname
@@ -1157,19 +1151,23 @@ output :
 
 --46. All orders that are greater than the average for Oct 4.
 Query:
-Select * 
-from orders
-where amt > ( select avg(amt) 
-                        from orders
-                                    where odate = '03-OCT-94');
-output : 
-ERROR 1525 (HY000) at line 57: Incorrect DATE value: '03-OCT-94'
+SELECT *
+FROM ORDERS
+WHERE AMT > (SELECT AVG(AMT) FROM ORDERS WHERE ODATE = '1994-10-04')
+AND ODATE = '1994-10-04';WHERE SUBSTR(CNAME, 1, 1) BETWEEN 'A' AND 'B';
+
+Output:
++------+---------+------------+------+------+
+| ONUM | AMT     | ODATE      | CNUM | SNUM |
++------+---------+------------+------+------+
+| 3009 | 1713.23 | 1994-10-04 | 2002 | 1003 |
++------+---------+------------+------+------+
 
 --47. Find average commission of salespeople in london.
 Query:
 Select avg(comm)
 from salespeople
-where city = ‘London’;
+where city = 'London';
 
 output : 
 +-------------------+
@@ -1233,9 +1231,7 @@ where rating > ( select avg(rating)
                            from cust
                            where city = 'San Jose');
 Output:
-
-count(*)
-0
+-
 --52.Obtain all orders for the customer named Cisnerous.(Assume you don’t know his customer no. (cnum)).
 Query:
 SELECT
